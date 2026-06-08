@@ -1,0 +1,2648 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIANO TILES BLE</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --cyan: #00d4ff;
+      --green: #00ff88;
+      --red: #ff4444;
+      --gold: #ffd700;
+      --bg: #0a0a0f;
+      --bg2: #0d0d1a;
+      --bg3: #080810;
+      --border: #1e1e2e;
+
+      /* Colores de teclas — se cambian desde el panel */
+      --tile-top: #00d4ff;
+      --tile-bot: #0084aa;
+      --tile-glow: #00d4ff66;
+      --tile-border: #00d4ff88;
+
+      --key-bg-active: #00d4ff22;
+      --key-color-active: #00d4ff;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+    }
+
+    #app {
+      background: var(--bg);
+      min-height: 100vh;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: 'Space Mono', monospace;
+      color: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+    }
+
+    #scanlines {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.08) 2px, rgba(0, 0, 0, 0.08) 4px);
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* HEADER */
+    #header {
+      width: 100%;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+      z-index: 30;
+    }
+
+    #title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 3px;
+      color: var(--cyan);
+    }
+
+    #header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #score-display {
+      text-align: right;
+    }
+
+    #score-label {
+      font-size: 10px;
+      color: #aaa;
+      letter-spacing: 2px;
+    }
+
+    #score-num {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    #timer-display {
+      text-align: center;
+      display: none;
+    }
+
+    #timer-label {
+      font-size: 10px;
+      color: #aaa;
+      letter-spacing: 2px;
+    }
+
+    #timer-num {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    #speed-display {
+      text-align: center;
+    }
+
+    #speed-label {
+      font-size: 10px;
+      color: #444;
+      letter-spacing: 2px;
+    }
+
+    #speed-num {
+      font-size: 16px;
+      font-weight: 700;
+      color: #555;
+    }
+
+    /* STATUS BAR */
+    #status-bar {
+      width: 100%;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg3);
+      border-bottom: 1px solid #1a1a28;
+      z-index: 30;
+      font-size: 12px;
+    }
+
+    #bt-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #333;
+      transition: background 0.3s;
+    }
+
+    #bt-dot.connected {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    #bt-dot.connecting {
+      background: #ffaa00;
+      animation: pulse 0.8s infinite;
+    }
+
+    #bt-status {
+      color: #aaa;
+      font-size: 11px;
+    }
+
+    #bt-btn {
+      margin-left: auto;
+      padding: 5px 14px;
+      border: 1px solid #00d4ff44;
+      background: transparent;
+      color: var(--cyan);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+
+    #bt-btn:hover {
+      background: #00d4ff22;
+    }
+
+    #pause-btn {
+      padding: 5px 14px;
+      border: 1px solid #ffffff33;
+      background: transparent;
+      color: #fff;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+      display: none;
+    }
+
+    #pause-btn:hover {
+      background: #ffffff22;
+    }
+
+    #end-inf-btn {
+      padding: 5px 14px;
+      border: 1px solid var(--red);
+      background: transparent;
+      color: var(--red);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+      display: none;
+    }
+
+    #end-inf-btn:hover {
+      background: #ff444422;
+    }
+
+    #song-display {
+      font-size: 11px;
+      color: #666;
+      letter-spacing: 1px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Panel toggle button en status bar */
+    #panel-toggle-btn {
+      padding: 5px 14px;
+      border: 1px solid #ffffff22;
+      background: transparent;
+      color: #888;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+
+    #panel-toggle-btn:hover {
+      border-color: #fff;
+      color: #fff;
+    }
+
+    #panel-toggle-btn.active {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.3
+      }
+    }
+
+    /* ══════════════════════════════════════════════
+     PANEL LATERAL (colores + secuencia)
+  ══════════════════════════════════════════════ */
+    #side-panel {
+      position: absolute;
+      top: 0;
+      right: -320px;
+      bottom: 0;
+      width: 300px;
+      background: #0b0b18;
+      border-left: 1px solid #1e1e2e;
+      z-index: 35;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #side-panel.open {
+      right: 0;
+    }
+
+    #panel-header {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid #1a1a2e;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #panel-close {
+      background: none;
+      border: none;
+      color: #555;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0 4px;
+      transition: color 0.2s;
+    }
+
+    #panel-close:hover {
+      color: #fff;
+    }
+
+    #panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    #panel-body::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    #panel-body::-webkit-scrollbar-thumb {
+      background: #1a1a35;
+      border-radius: 2px;
+    }
+
+    .panel-section-title {
+      font-size: 9px;
+      color: #555;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* Color presets */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .color-preset {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.18s;
+      position: relative;
+    }
+
+    .color-preset:hover {
+      transform: scale(1.08);
+    }
+
+    .color-preset.selected {
+      border-color: #fff;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+
+    .color-preset .cp-label {
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: #555;
+      white-space: nowrap;
+      letter-spacing: 1px;
+    }
+
+    .color-presets-wrap {
+      padding-bottom: 22px;
+    }
+
+    /* Custom color pickers */
+    .custom-color-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .custom-color-label {
+      font-size: 10px;
+      color: #666;
+      letter-spacing: 1px;
+      flex: 1;
+    }
+
+    input[type=color] {
+      width: 36px;
+      height: 28px;
+      border: 1px solid #222;
+      border-radius: 4px;
+      background: none;
+      cursor: pointer;
+      padding: 2px;
+    }
+
+    .apply-color-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--cyan);
+      background: transparent;
+      color: var(--cyan);
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      letter-spacing: 1px;
+      width: 100%;
+      transition: all 0.2s;
+      margin-top: 4px;
+    }
+
+    .apply-color-btn:hover {
+      background: var(--cyan);
+      color: #000;
+    }
+
+    /* Sequence visualizer */
+    .seq-song-select {
+      width: 100%;
+      padding: 7px 10px;
+      background: #0d0d1a;
+      border: 1px solid #2a2a45;
+      color: #aaa;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+
+    .seq-song-select:focus {
+      outline: none;
+      border-color: var(--cyan);
+    }
+
+    .seq-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #060608;
+      border-radius: 6px;
+      padding: 8px;
+      border: 1px solid #111;
+    }
+
+    .seq-grid::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .seq-grid::-webkit-scrollbar-thumb {
+      background: #1a1a35;
+    }
+
+    .seq-row {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .seq-step-num {
+      font-size: 9px;
+      color: #333;
+      width: 22px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .seq-cells {
+      display: flex;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .seq-cell {
+      flex: 1;
+      height: 12px;
+      border-radius: 2px;
+      background: #111;
+      transition: background 0.1s;
+    }
+
+    .seq-cell.active {
+      background: var(--tile-top);
+      box-shadow: 0 0 4px var(--tile-top);
+    }
+
+    .seq-cell.current {
+      outline: 1px solid #fff;
+      outline-offset: 1px;
+    }
+
+    .seq-legend {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .seq-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      color: #555;
+    }
+
+    .seq-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    /* GAME AREA */
+    #game-area {
+      width: 100%;
+      display: flex;
+      gap: 0;
+      position: relative;
+      overflow: hidden;
+      flex: 1;
+      z-index: 2;
+      transition: width 0.35s;
+    }
+
+    #game-area.panel-open {
+      /* panel slides over — no width change needed */
+    }
+
+    .lane {
+      flex: 1;
+      border-right: 1px solid #111;
+      position: relative;
+      background: var(--bg3);
+      overflow: hidden;
+    }
+
+    .lane:last-child {
+      border-right: none;
+    }
+
+    .lane-label {
+      position: absolute;
+      bottom: 58px;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      color: #5a5a8a;
+      z-index: 3;
+      letter-spacing: 1px;
+    }
+
+    .hit-zone {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      border-top: 2px solid #00d4ff44;
+      z-index: 2;
+      background: linear-gradient(to top, rgba(0, 180, 255, 0.12) 0%, rgba(0, 180, 255, 0.04) 60%, transparent 100%);
+    }
+
+    .hit-zone::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #00d4ff88, transparent);
+      box-shadow: 0 0 8px 2px #00d4ff55;
+    }
+
+    .tile {
+      position: absolute;
+      left: 4px;
+      right: 4px;
+      border-radius: 6px;
+      transition: opacity 0.1s;
+    }
+
+    .tile.active {
+      background: linear-gradient(180deg, var(--tile-top), var(--tile-bot));
+      box-shadow: 0 0 12px var(--tile-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      border: 1px solid var(--tile-border);
+    }
+
+    .tile.hit {
+      background: linear-gradient(180deg, var(--green), #00aa55) !important;
+      box-shadow: 0 0 20px #00ff8899 !important;
+      border-color: var(--green) !important;
+    }
+
+    .hit-flash {
+      position: absolute;
+      inset: 0;
+      border-radius: 6px;
+      background: var(--green);
+      animation: flash 0.25s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes flash {
+      0% {
+        opacity: 0.8
+      }
+
+      100% {
+        opacity: 0
+      }
+    }
+
+    .lane-wrong-flash {
+      animation: wrongFlash 0.35s ease-out forwards;
+    }
+
+    @keyframes wrongFlash {
+      0% {
+        background: rgba(255, 40, 40, 0.35)
+      }
+
+      100% {
+        background: var(--bg3)
+      }
+    }
+
+    #miss-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 30, 30, 0.15);
+      z-index: 4;
+      animation: fadeRed 0.5s ease-out forwards;
+      pointer-events: none;
+      display: none;
+    }
+
+    @keyframes fadeRed {
+      0% {
+        opacity: 1
+      }
+
+      100% {
+        opacity: 0
+      }
+    }
+
+    @keyframes penaltyFade {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%)
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -120%)
+      }
+    }
+
+    #combo-display {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      color: var(--cyan);
+      z-index: 6;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px var(--cyan);
+    }
+
+    /* NOTE KEYS */
+    #note-names {
+      display: flex;
+      width: 100%;
+      z-index: 10;
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+    }
+
+    .note-key {
+      flex: 1;
+      padding: 14px 2px;
+      text-align: center;
+      font-size: 11px;
+      color: #888;
+      letter-spacing: 1px;
+      border-right: 1px solid #111;
+      transition: all 0.15s;
+      user-select: none;
+      cursor: default;
+    }
+
+    .note-key:last-child {
+      border-right: none;
+    }
+
+    .note-key.pressed {
+      background: var(--key-bg-active);
+      color: var(--key-color-active);
+    }
+
+    .note-key.hit-key {
+      background: #00ff8833;
+      color: var(--green);
+    }
+
+    .note-key.wrong-key {
+      background: #ff444433;
+      color: var(--red);
+    }
+
+    /* SCREENS */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.92);
+      z-index: 25;
+      gap: 14px;
+      padding-top: 90px;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    #menu-screen {
+      gap: 10px;
+    }
+
+    #menu-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 56px;
+      letter-spacing: 8px;
+      color: var(--cyan);
+      text-shadow: 0 0 30px #00d4ff88;
+      margin-bottom: 10px;
+      text-align: center;
+      line-height: 1;
+    }
+
+    .menu-section-title {
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+
+    .mode-cards {
+      display: flex;
+      gap: 12px;
+      margin: 6px 0;
+    }
+
+    .mode-card {
+      padding: 14px 20px;
+      border: 1px solid #2a2a45;
+      border-radius: 8px;
+      background: #0d0d1a;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      min-width: 130px;
+    }
+
+    .mode-card:hover {
+      border-color: var(--cyan);
+      background: #0d1a2a;
+    }
+
+    .mode-card.selected {
+      border-color: var(--cyan);
+      background: #00d4ff15;
+      box-shadow: 0 0 12px #00d4ff33;
+    }
+
+    .mode-card-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+    }
+
+    .mode-card-desc {
+      font-size: 10px;
+      color: #888;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .duration-cards {
+      display: flex;
+      gap: 8px;
+      margin: 4px 0;
+    }
+
+    .duration-card {
+      padding: 8px 16px;
+      border: 1px solid #2a2a45;
+      border-radius: 6px;
+      background: #0d0d1a;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+      letter-spacing: 1px;
+    }
+
+    .duration-card:hover {
+      border-color: var(--gold);
+    }
+
+    .duration-card.selected {
+      border-color: var(--gold);
+      background: #1a1500;
+      color: var(--gold);
+    }
+
+    .bt-menu-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 4px 0;
+      background: #0d0d1a;
+      border: 1px solid #2a2a45;
+      border-radius: 6px;
+      padding: 10px 16px;
+    }
+
+    .bt-menu-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #333;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .bt-menu-dot.connected {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    .bt-menu-dot.connecting {
+      background: #ffaa00;
+      animation: pulse 0.8s infinite;
+    }
+
+    .bt-menu-label {
+      font-size: 11px;
+      color: #888;
+      flex: 1;
+    }
+
+    #menu-bt-btn {
+      padding: 5px 14px;
+      border: 1px solid #00d4ff44;
+      background: transparent;
+      color: var(--cyan);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+
+    #menu-bt-btn:hover {
+      background: #00d4ff22;
+    }
+
+    #menu-start-btn {
+      padding: 14px 48px;
+      border: 2px solid var(--cyan);
+      background: transparent;
+      color: var(--cyan);
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 8px;
+      letter-spacing: 3px;
+      transition: all 0.25s;
+      margin-top: 10px;
+    }
+
+    #menu-start-btn:hover {
+      background: var(--cyan);
+      color: #000;
+      box-shadow: 0 0 20px #00d4ff66;
+    }
+
+    #name-screen {
+      gap: 16px;
+    }
+
+    #name-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      letter-spacing: 4px;
+      color: var(--cyan);
+    }
+
+    #name-input {
+      padding: 12px 20px;
+      background: #0d0d1a;
+      border: 1px solid var(--cyan);
+      color: #fff;
+      font-family: 'Space Mono', monospace;
+      font-size: 16px;
+      border-radius: 6px;
+      outline: none;
+      width: 300px;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+
+    #name-input::placeholder {
+      color: #444;
+    }
+
+    #name-confirm-btn {
+      padding: 12px 36px;
+      border: 1px solid var(--cyan);
+      background: transparent;
+      color: var(--cyan);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 6px;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+    }
+
+    #name-confirm-btn:hover {
+      background: var(--cyan);
+      color: #000;
+    }
+
+    .song-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      max-width: 400px;
+    }
+
+    .song-pill {
+      padding: 7px 14px;
+      border: 1px solid #2a2a45;
+      border-radius: 20px;
+      background: #0d0d1a;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 11px;
+      color: #888;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .song-pill:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .song-pill.selected {
+      border-color: var(--cyan);
+      background: #00d4ff18;
+      color: var(--cyan);
+      box-shadow: 0 0 8px #00d4ff33;
+    }
+
+    .song-pill.random {
+      border-color: #555;
+      color: #666;
+    }
+
+    .song-pill.random.selected {
+      border-color: var(--gold);
+      background: #1a150018;
+      color: var(--gold);
+      box-shadow: 0 0 8px #ffd70033;
+    }
+
+    #pause-screen {
+      gap: 16px;
+    }
+
+    #pause-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 48px;
+      letter-spacing: 6px;
+      color: #ffaa00;
+    }
+
+    .pause-btn {
+      padding: 12px 36px;
+      border: 1px solid #aaa;
+      background: transparent;
+      color: #aaa;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 6px;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+    }
+
+    .pause-btn.primary {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .pause-btn.primary:hover {
+      background: var(--cyan);
+      color: #000;
+    }
+
+    .pause-btn.danger {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .pause-btn.danger:hover {
+      background: var(--red);
+      color: #000;
+    }
+
+    #result-screen {
+      gap: 12px;
+    }
+
+    #result-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 52px;
+      letter-spacing: 6px;
+    }
+
+    #result-mode-label {
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 3px;
+    }
+
+    #result-player {
+      font-size: 14px;
+      color: #aaa;
+      letter-spacing: 2px;
+    }
+
+    #result-score {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 40px;
+      color: var(--cyan);
+    }
+
+    #result-rank {
+      font-size: 12px;
+      color: var(--gold);
+      letter-spacing: 2px;
+    }
+
+    .result-btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .res-btn {
+      padding: 12px 28px;
+      border: 1px solid #444;
+      background: transparent;
+      color: #aaa;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 6px;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+    }
+
+    .res-btn:hover {
+      border-color: #fff;
+      color: #fff;
+    }
+
+    .res-btn.primary {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .res-btn.primary:hover {
+      background: var(--cyan);
+      color: #000;
+    }
+
+    #rankings-screen {
+      gap: 10px;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    #rankings-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 40px;
+      letter-spacing: 5px;
+      color: var(--gold);
+    }
+
+    .rank-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .rank-tab {
+      padding: 6px 16px;
+      border: 1px solid #2a2a45;
+      border-radius: 4px;
+      background: transparent;
+      color: #888;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+
+    .rank-tab.active {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: #1a1500;
+    }
+
+    .rank-table {
+      width: 420px;
+      border-collapse: collapse;
+    }
+
+    .rank-table th {
+      text-align: left;
+      padding: 6px 10px;
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #1a1a28;
+    }
+
+    .rank-table td {
+      padding: 8px 10px;
+      font-size: 12px;
+      border-bottom: 1px solid #111;
+    }
+
+    .rank-table tr:nth-child(2) td {
+      color: var(--gold);
+    }
+
+    .rank-table tr:nth-child(3) td {
+      color: #c0c0c0;
+    }
+
+    .rank-table tr:nth-child(4) td {
+      color: #cd7f32;
+    }
+
+    .rank-pos {
+      width: 30px;
+      color: #555;
+      font-size: 11px;
+    }
+
+    .rank-score {
+      text-align: right;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    .rank-empty {
+      color: #333;
+      font-size: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    #close-rankings-btn {
+      padding: 10px 28px;
+      border: 1px solid #444;
+      background: transparent;
+      color: #aaa;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 6px;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+
+    #close-rankings-btn:hover {
+      border-color: #fff;
+      color: #fff;
+    }
+
+    #menu-rankings-btn {
+      padding: 8px 20px;
+      border: 1px solid var(--gold);
+      background: transparent;
+      color: var(--gold);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+
+    #menu-rankings-btn:hover {
+      background: #1a150033;
+    }
+
+    /* ── Mini color panel in menu ── */
+    #menu-color-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    #menu-color-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+    }
+
+    .menu-color-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.18s;
+      position: relative;
+    }
+
+    .menu-color-dot:hover {
+      transform: scale(1.15);
+    }
+
+    .menu-color-dot.selected {
+      border-color: #fff;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+    }
+
+    #menu-color-label {
+      font-size: 9px;
+      color: #555;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    /* ══════════════════════════════════════════════
+       CHARTS SCREEN
+    ══════════════════════════════════════════════ */
+    #charts-screen {
+      gap: 10px;
+      padding: 20px;
+      overflow-y: auto;
+      background: rgba(5, 5, 10, 0.97);
+    }
+    #charts-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 38px;
+      letter-spacing: 5px;
+      color: var(--cyan);
+      text-shadow: 0 0 20px #00d4ff55;
+      margin-top: 10px;
+    }
+    #charts-subtitle {
+      font-size: 11px;
+      color: #555;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+    #charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      width: 100%;
+      max-width: 900px;
+    }
+    .chart-card {
+      background: #0a0a14;
+      border: 1px solid #1a1a2e;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #111;
+      padding-bottom: 6px;
+    }
+    .chart-label {
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 2px;
+    }
+    .chart-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      color: var(--cyan);
+      letter-spacing: 1px;
+    }
+    .chart-card canvas {
+      width: 100%;
+      height: 180px;
+      background: #06060c;
+      border-radius: 4px;
+    }
+    .chart-footer {
+      font-size: 9px;
+      color: #333;
+      letter-spacing: 1px;
+    }
+    #charts-legend {
+      margin-top: 6px;
+      text-align: center;
+    }
+    #close-charts-btn {
+      padding: 10px 28px;
+      border: 1px solid var(--cyan);
+      background: transparent;
+      color: var(--cyan);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 6px;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+      margin-top: 4px;
+      margin-bottom: 20px;
+    }
+    #close-charts-btn:hover {
+      background: var(--cyan);
+      color: #000;
+    }
+    @media (max-width: 700px) {
+      #charts-grid { grid-template-columns: 1fr; }
+    }
+
+    #menu-charts-btn {
+      padding: 8px 20px;
+      border: 1px solid #ffffff22;
+      background: transparent;
+      color: #888;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+    #menu-charts-btn:hover {
+      border-color: #fff;
+      color: #fff;
+    }
+
+    #charts-btn {
+      padding: 5px 14px;
+      border: 1px solid #00d4ff44;
+      background: transparent;
+      color: var(--cyan);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+    #charts-btn:hover {
+      background: #00d4ff22;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div id="scanlines"></div>
+    <div id="header">
+      <div id="title">PIANO TILES</div>
+      <div id="header-right">
+        <div id="speed-display">
+          <div id="speed-label">VELOCIDAD</div>
+          <div id="speed-num">1x</div>
+        </div>
+        <div id="timer-display">
+          <div id="timer-label">TIEMPO</div>
+          <div id="timer-num">1:00</div>
+        </div>
+        <div id="score-display">
+          <div id="score-label">PUNTUACIÓN</div>
+          <div id="score-num">0</div>
+        </div>
+      </div>
+    </div>
+    <div id="status-bar">
+      <div id="bt-dot"></div>
+      <div id="bt-status">Sin conexión BLE</div>
+      <span id="song-display">—</span>
+      <button id="end-inf-btn" onclick="endGame(false)">TERMINAR</button>
+      <button id="pause-btn" onclick="togglePause()">PAUSA</button>
+      <button id="panel-toggle-btn" onclick="togglePanel()">🎨 PANEL</button>
+      <button id="charts-btn" onclick="showCharts()">📊 GRÁFICAS</button>
+      <button id="bt-btn" onclick="connectBLE()">CONECTAR BLE</button>
+    </div>
+    <div id="game-area">
+      <div id="miss-overlay"></div>
+      <div id="combo-display">COMBO</div>
+    </div>
+    <div id="note-names"></div>
+
+    <!-- ══════════════════════════════════════════
+       PANEL LATERAL: COLORES + SECUENCIA
+  ══════════════════════════════════════════ -->
+    <div id="side-panel">
+      <div id="panel-header">
+        PANEL
+        <button id="panel-close" onclick="togglePanel()">✕</button>
+      </div>
+      <div id="panel-body">
+
+        <!-- SECCIÓN: COLOR DE TECLAS -->
+        <div>
+          <div class="panel-section-title">Color de teclas (tiles)</div>
+          <div class="color-presets-wrap">
+            <div class="color-grid" id="color-preset-grid"></div>
+          </div>
+
+          <div class="panel-section-title" style="margin-top:14px;">Color personalizado</div>
+          <div class="custom-color-row">
+            <div class="custom-color-label">Color superior</div>
+            <input type="color" id="custom-top" value="#00d4ff">
+          </div>
+          <div class="custom-color-row">
+            <div class="custom-color-label">Color inferior</div>
+            <input type="color" id="custom-bot" value="#0084aa">
+          </div>
+          <div class="custom-color-row">
+            <div class="custom-color-label">Color teclas activas</div>
+            <input type="color" id="custom-key" value="#00d4ff">
+          </div>
+          <button class="apply-color-btn" onclick="applyCustomColor()">APLICAR COLOR</button>
+        </div>
+
+        <!-- SECCIÓN: SECUENCIA DE CANCIÓN -->
+        <div>
+          <div class="panel-section-title">Secuencia de canción</div>
+          <select class="seq-song-select" id="seq-song-select" onchange="renderSequence()"></select>
+          <div class="seq-grid" id="seq-grid"></div>
+          <div class="seq-legend" id="seq-legend"></div>
+          <div style="font-size:9px;color:#333;letter-spacing:1px;margin-top:8px;">
+            El cuadro resaltado sigue la posición actual durante el juego.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MENU -->
+    <div id="menu-screen" class="screen active">
+      <div id="menu-title">PIANO<br>TILES</div>
+      <div class="menu-section-title">MODO DE JUEGO</div>
+      <div class="mode-cards">
+        <div class="mode-card selected" onclick="selectMode('points')" id="card-points">
+          <div class="mode-card-title">PUNTOS</div>
+          <div class="mode-card-desc">Fallas restan<br>puntos. Sobrevive.</div>
+        </div>
+        <div class="mode-card" onclick="selectMode('death')" id="card-death">
+          <div class="mode-card-title">UN FALLO</div>
+          <div class="mode-card-desc">Un error y<br>pierdes todo.</div>
+        </div>
+      </div>
+      <div id="duration-selector">
+        <div class="menu-section-title">DURACIÓN (MODO PUNTOS)</div>
+        <div class="duration-cards">
+          <div class="duration-card selected" onclick="selectDuration('infinite')" id="card-inf">INFINITO</div>
+          <div class="duration-card" onclick="selectDuration('1min')" id="card-1min">1 MINUTO</div>
+        </div>
+      </div>
+      <div class="menu-section-title">BLUETOOTH BLE</div>
+      <div class="bt-menu-row">
+        <div class="bt-menu-dot" id="menu-bt-dot"></div>
+        <div class="bt-menu-label" id="menu-bt-label">Sin conexión BLE</div>
+        <button id="menu-bt-btn" onclick="connectBLE()">CONECTAR BLE</button>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;">
+        <button id="menu-charts-btn" onclick="showCharts()">📊 TELEMETRÍA</button>
+        <button id="menu-rankings-btn" onclick="showRankings()">🏆 RANKINGS</button>
+        <button id="menu-start-btn" onclick="showNameInput()">INICIAR JUEGO</button>
+        <!-- COLOR SELECTOR en menú -->
+        <div class="menu-section-title" style="margin-top:10px;">COLOR DE TILES</div>
+        <div id="menu-color-section">
+          <div id="menu-color-grid"></div>
+          <div id="menu-color-label">CYAN</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAME -->
+    <div id="name-screen" class="screen">
+      <div id="name-title">¿CÓMO TE LLAMAS?</div>
+      <div style="font-size:11px;color:#555;letter-spacing:2px;">TU NOMBRE APARECERÁ EN EL RANKING</div>
+      <input id="name-input" type="text" maxlength="16" placeholder="JUGADOR" autocomplete="off" />
+      <div class="menu-section-title" style="margin-top:4px;">SELECCIONA LA CANCIÓN</div>
+      <div class="song-selector" id="song-selector"></div>
+      <button id="name-confirm-btn" onclick="confirmName()">LISTO →</button>
+    </div>
+
+    <!-- PAUSE -->
+    <div id="pause-screen" class="screen">
+      <div id="pause-title">PAUSA</div>
+      <button class="pause-btn primary" onclick="togglePause()">CONTINUAR</button>
+      <button class="pause-btn danger" onclick="endGame(true)">ABANDONAR</button>
+    </div>
+
+    <!-- RESULT -->
+    <div id="result-screen" class="screen">
+      <div id="result-title" style="color:var(--red)">GAME OVER</div>
+      <div id="result-mode-label">MODO: —</div>
+      <div id="result-player">JUGADOR</div>
+      <div id="result-score">0 PTS</div>
+      <div id="result-rank"></div>
+      <div class="result-btns">
+        <button class="res-btn" onclick="showCharts()">📊 TELEMETRÍA</button>
+        <button class="res-btn" onclick="showRankings()">🏆 RANKINGS</button>
+        <button class="res-btn" onclick="showMenu()">MENÚ</button>
+        <button class="res-btn primary" onclick="showNameInput()">REINTENTAR</button>
+      </div>
+    </div>
+
+    <!-- RANKINGS -->
+    <div id="rankings-screen" class="screen">
+      <div id="rankings-title">🏆 RANKINGS</div>
+      <div class="rank-tabs">
+        <button class="rank-tab active" onclick="showRankTab('points_inf',this)">PUNTOS INF.</button>
+        <button class="rank-tab" onclick="showRankTab('points_1min',this)">PUNTOS 1 MIN</button>
+        <button class="rank-tab" onclick="showRankTab('death',this)">UN FALLO</button>
+      </div>
+      <table class="rank-table" id="rank-table-body"></table>
+      <button id="close-rankings-btn" onclick="closeRankings()">VOLVER</button>
+    </div>
+
+    <!-- CHARTS SCREEN -->
+    <div id="charts-screen" class="screen">
+      <div id="charts-title">📊 TELEMETRÍA EN TIEMPO REAL</div>
+      <div id="charts-subtitle">Datos recolectados vía BLE desde SmartPiano</div>
+      <div id="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-label">🅰️ ACTIVIDAD PIR</span>
+            <span class="chart-value" id="val-act">—</span>
+          </div>
+          <canvas id="chart-act" width="400" height="180"></canvas>
+          <div class="chart-footer">1 = Piano activo (movimiento detectado)</div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-label">📏 VOLUMEN / VL53L0X</span>
+            <span class="chart-value" id="val-vol">—</span>
+          </div>
+          <canvas id="chart-vol" width="400" height="180"></canvas>
+          <div class="chart-footer">Distancia inferida → Volumen (5–30)</div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-label">🎹 CARPETA / INSTRUMENTO</span>
+            <span class="chart-value" id="val-fol">—</span>
+          </div>
+          <canvas id="chart-fol" width="400" height="180"></canvas>
+          <div class="chart-footer">Carpeta seleccionada (1–4)</div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-label">🎵 NOTAS PRESIONADAS</span>
+            <span class="chart-value" id="val-notes">—</span>
+          </div>
+          <canvas id="chart-notes" width="400" height="180"></canvas>
+          <div class="chart-footer">Frecuencia por tecla + timeline</div>
+        </div>
+      </div>
+      <div id="charts-legend">
+        <span style="color:#666;font-size:11px;letter-spacing:1px;">
+          Muestra: cada 15 s · Buffer: últimos 60 registros · Notas: eventos en tiempo real
+        </span>
+      </div>
+      <button id="close-charts-btn" onclick="closeCharts()">VOLVER AL JUEGO</button>
+    </div>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════
+    // AUDIO ENGINE
+    // ══════════════════════════════════════════════
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let actx = null;
+    function getAudioCtx() {
+      if (!actx) actx = new AudioCtx();
+      if (actx.state === 'suspended') actx.resume();
+      return actx;
+    }
+    const NOTE_FREQ = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+    function playNote(laneIdx, type = 'hit', duration = 0.25) {
+      try {
+        const ctx = getAudioCtx();
+        const freq = NOTE_FREQ[laneIdx];
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const now = ctx.currentTime;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+        if (type === 'hit') {
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(0.35, now + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        } else if (type === 'wrong') {
+          osc.frequency.setValueAtTime(freq * 0.5, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        } else if (type === 'miss') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(120, now);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        }
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now); osc.stop(now + duration + 0.05);
+      } catch (e) { }
+    }
+
+    // ══════════════════════════════════════════════
+    // SONGS
+    // ══════════════════════════════════════════════
+    const SONGS = [
+      { name: 'Twinkle Twinkle', bpm: 38, steps: [0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2, 1, 1, 0, 4, 4, 3, 3, 2, 2, 1, 4, 4, 3, 3, 2, 2, 1, 0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2, 1, 1, 0] },
+      { name: 'Cumpleaños Feliz', bpm: 38, steps: [0, 0, 1, 0, 3, 2, 0, 0, 1, 0, 4, 3, 0, 0, 7, 5, 3, 2, 1, 6, 6, 5, 3, 4, 3] },
+      { name: 'Oda a la Alegría', bpm: 36, steps: [2, 2, 3, 4, 4, 3, 2, 1, 0, 0, 1, 2, 2, 1, 1, 2, 2, 3, 4, 4, 3, 2, 1, 0, 0, 1, 2, 1, 0, 0, 1, 1, 2, 0, 1, 2, 3, 2, 0, 1, 2, 3, 2, 1, 0, 1, 4, 2, 2, 3, 4, 4, 3, 2, 1, 0, 0, 1, 2, 1, 0, 0] },
+      { name: 'Escala Ascendente', bpm: 40, steps: [0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0, 0, 2, 4, 6, 7, 5, 3, 1, 0, 1, 3, 5, 7, 6, 4, 2] },
+      { name: 'Vals Sencillo', bpm: 38, steps: [0, 2, 4, 2, 4, 6, 4, 6, 5, 3, 5, 3, 5, 2, 0, 1, 3, 5, 3, 5, 7, 5, 7, 6, 4, 6, 4, 6, 3, 1, 0, 2, 4, 2, 4, 6, 4, 2, 0] },
+      { name: 'Claro de Luna', bpm: 28, steps: [0, 2, 4, 0, 2, 4, 0, 2, 4, 0, 2, 4, 1, 3, 0, 1, 3, 0, 1, 3, 0, 1, 3, 0, 7, 6, 5, 4, 2, 4, 7, 2, 4, 7, 2, 4, 7, 2, 4, 7, 5, 0, 2, 5, 0, 2, 5, 0, 2, 5, 0, 2, 0, 1, 2, 3, 4, 1, 3, 5, 1, 3, 5, 1, 3, 5, 4, 7, 1, 4, 7, 1, 4, 7, 1, 4, 7, 1, 0, 7, 5, 4, 3, 2, 2, 4, 0, 2, 4, 0, 2, 4, 0, 2, 4, 0, 0, 2, 4, 7, 7] }
+    ];
+
+    // ══════════════════════════════════════════════
+    // COLOR SYSTEM  ← NUEVO
+    // ══════════════════════════════════════════════
+    const COLOR_PRESETS = [
+      { name: 'CYAN', top: '#00d4ff', bot: '#0055aa', glow: '#00d4ff66', border: '#00d4ff88', key: '#00d4ff' },
+      { name: 'VERDE', top: '#00ff88', bot: '#006633', glow: '#00ff8866', border: '#00ff8888', key: '#00ff88' },
+      { name: 'ROJO', top: '#ff4444', bot: '#880000', glow: '#ff444466', border: '#ff444488', key: '#ff4444' },
+      { name: 'DORADO', top: '#ffd700', bot: '#886600', glow: '#ffd70066', border: '#ffd70088', key: '#ffd700' },
+      { name: 'MORADO', top: '#cc44ff', bot: '#550088', glow: '#cc44ff66', border: '#cc44ff88', key: '#cc44ff' },
+      { name: 'NARANJA', top: '#ff8800', bot: '#883300', glow: '#ff880066', border: '#ff880088', key: '#ff8800' },
+      { name: 'ROSA', top: '#ff44aa', bot: '#880044', glow: '#ff44aa66', border: '#ff44aa88', key: '#ff44aa' },
+      { name: 'BLANCO', top: '#ffffff', bot: '#888888', glow: '#ffffff44', border: '#ffffff66', key: '#ffffff' },
+    ];
+
+    let selectedPresetIdx = 0;
+
+    function buildColorPanel() {
+      const grid = document.getElementById('color-preset-grid');
+      grid.innerHTML = '';
+      COLOR_PRESETS.forEach((p, i) => {
+        const div = document.createElement('div');
+        div.className = 'color-preset' + (i === selectedPresetIdx ? ' selected' : '');
+        div.style.background = `linear-gradient(180deg, ${p.top}, ${p.bot})`;
+        div.title = p.name;
+        div.innerHTML = `<span class="cp-label">${p.name}</span>`;
+        div.onclick = () => applyPreset(i);
+        grid.appendChild(div);
+      });
+      buildMenuColorGrid();
+    }
+
+    function buildMenuColorGrid() {
+      const grid = document.getElementById('menu-color-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      COLOR_PRESETS.forEach((p, i) => {
+        const dot = document.createElement('div');
+        dot.className = 'menu-color-dot' + (i === selectedPresetIdx ? ' selected' : '');
+        dot.style.background = `linear-gradient(180deg, ${p.top}, ${p.bot})`;
+        dot.title = p.name;
+        dot.onclick = () => applyPreset(i);
+        grid.appendChild(dot);
+      });
+      const lbl = document.getElementById('menu-color-label');
+      if (lbl && selectedPresetIdx >= 0) lbl.textContent = COLOR_PRESETS[selectedPresetIdx].name;
+      else if (lbl) lbl.textContent = 'PERSONALIZADO';
+    }
+
+    function applyPreset(idx) {
+      selectedPresetIdx = idx;
+      const p = COLOR_PRESETS[idx];
+      applyColors(p.top, p.bot, p.glow, p.border, p.key);
+      buildColorPanel();
+    }
+
+    function applyCustomColor() {
+      const top = document.getElementById('custom-top').value;
+      const bot = document.getElementById('custom-bot').value;
+      const key = document.getElementById('custom-key').value;
+      const glow = top + '66';
+      const border = top + '88';
+      // Deselect presets
+      selectedPresetIdx = -1;
+      buildColorPanel();
+      applyColors(top, bot, glow, border, key);
+    }
+
+    function applyColors(top, bot, glow, border, key) {
+      const r = document.documentElement;
+      r.style.setProperty('--tile-top', top);
+      r.style.setProperty('--tile-bot', bot);
+      r.style.setProperty('--tile-glow', glow);
+      r.style.setProperty('--tile-border', border);
+      r.style.setProperty('--key-bg-active', key + '22');
+      r.style.setProperty('--key-color-active', key);
+      // Update hit-zone glow to match
+      document.querySelectorAll('.hit-zone').forEach(hz => {
+        hz.style.borderTopColor = top + '44';
+        hz.style.background = `linear-gradient(to top, ${top}1a 0%, ${top}08 60%, transparent 100%)`;
+      });
+      // Enviar color a los LEDs físicos del piano vía WebSocket
+      sendColorWS(top);
+    }
+
+    // ══════════════════════════════════════════════
+    // SEQUENCE VISUALIZER  ← NUEVO
+    // ══════════════════════════════════════════════
+    const NOTE_NAMES = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI', 'DO²'];
+    // Lane colors for the mini-grid (fixed small dots)
+    const LANE_COLORS = ['#00d4ff', '#22ddff', '#44e8ff', '#66eeff', '#88f5ff', '#aaffff', '#ccffff', '#ffffff'];
+
+    function buildSeqSelector() {
+      const sel = document.getElementById('seq-song-select');
+      sel.innerHTML = '';
+      SONGS.forEach((s, i) => {
+        const o = document.createElement('option');
+        o.value = i; o.textContent = '♪ ' + s.name;
+        sel.appendChild(o);
+      });
+      // Keep in sync with active song
+      if (currentSong) {
+        const idx = SONGS.indexOf(currentSong);
+        if (idx >= 0) sel.value = idx;
+      }
+      renderSequence();
+    }
+
+    function renderSequence() {
+      const idx = parseInt(document.getElementById('seq-song-select').value);
+      const song = SONGS[idx];
+      const grid = document.getElementById('seq-grid');
+      grid.innerHTML = '';
+
+      // Group steps into rows of 8 for readability
+      const ROW_SIZE = 8;
+      const steps = song.steps;
+
+      for (let r = 0; r < steps.length; r += ROW_SIZE) {
+        const row = document.createElement('div');
+        row.className = 'seq-row';
+        const num = document.createElement('div');
+        num.className = 'seq-step-num';
+        num.textContent = r + 1;
+        row.appendChild(num);
+        const cells = document.createElement('div');
+        cells.className = 'seq-cells';
+        for (let c = r; c < Math.min(r + ROW_SIZE, steps.length); c++) {
+          const lane = steps[c];
+          // 8 mini-cells per step (which lane lights up)
+          for (let l = 0; l < 8; l++) {
+            const cell = document.createElement('div');
+            cell.className = 'seq-cell';
+            cell.id = `scell-${c}-${l}`;
+            if (lane === l) {
+              cell.classList.add('active');
+              cell.style.background = LANE_COLORS[l];
+              cell.style.boxShadow = `0 0 4px ${LANE_COLORS[l]}`;
+            }
+            cells.appendChild(cell);
+          }
+        }
+        row.appendChild(cells);
+        grid.appendChild(row);
+      }
+
+      // Legend
+      const leg = document.getElementById('seq-legend');
+      leg.innerHTML = '';
+      NOTE_NAMES.forEach((n, i) => {
+        const item = document.createElement('div');
+        item.className = 'seq-legend-item';
+        item.innerHTML = `<div class="seq-legend-dot" style="background:${LANE_COLORS[i]}"></div>${n}`;
+        leg.appendChild(item);
+      });
+    }
+
+    // Highlight current step in the visualizer during gameplay
+    function highlightSeqStep(stepIdx) {
+      // Remove all 'current' classes
+      document.querySelectorAll('.seq-cell.current').forEach(c => c.classList.remove('current'));
+      // Add to the correct row
+      if (currentSong && document.getElementById('side-panel').classList.contains('open')) {
+        const sideSongIdx = parseInt(document.getElementById('seq-song-select').value);
+        const activeSongIdx = SONGS.indexOf(currentSong);
+        if (sideSongIdx === activeSongIdx) {
+          const lane = currentSong.steps[stepIdx];
+          const cell = document.getElementById(`scell-${stepIdx}-${lane}`);
+          if (cell) {
+            cell.classList.add('current');
+            cell.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        }
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    // PANEL TOGGLE
+    // ══════════════════════════════════════════════
+    let panelOpen = false;
+    function togglePanel() {
+      panelOpen = !panelOpen;
+      document.getElementById('side-panel').classList.toggle('open', panelOpen);
+      document.getElementById('panel-toggle-btn').classList.toggle('active', panelOpen);
+      if (panelOpen) {
+        buildSeqSelector();
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    // SONGS ENGINE
+    // ══════════════════════════════════════════════
+    let selectedSongIndex = -1;
+    let currentSong = null;
+    let songStepIdx = 0;
+    let songTimer = null;
+    let songLoopCount = 0;
+
+    function startSong() {
+      stopSong();
+      currentSong = selectedSongIndex === -1 ? SONGS[Math.floor(Math.random() * SONGS.length)] : SONGS[selectedSongIndex];
+      songStepIdx = 0; songLoopCount = 0;
+      document.getElementById('song-display').textContent = '♪ ' + currentSong.name;
+      if (panelOpen) buildSeqSelector();
+      scheduleSongStep();
+    }
+    function stopSong() {
+      clearTimeout(songTimer); songTimer = null; currentSong = null;
+      document.getElementById('song-display').textContent = '—';
+    }
+    function scheduleSongStep() {
+      if (!gameActive || paused || !currentSong) return;
+      const msPerBeat = 60000 / currentSong.bpm;
+      const stepIdx = songStepIdx;
+      spawnTileAt(currentSong.steps[stepIdx]);
+      highlightSeqStep(stepIdx);
+      songStepIdx++;
+      if (songStepIdx >= currentSong.steps.length) {
+        songStepIdx = 0; songLoopCount++;
+        if (selectedSongIndex === -1 && songLoopCount >= 2) {
+          songLoopCount = 0;
+          const idx = (SONGS.indexOf(currentSong) + 1) % SONGS.length;
+          currentSong = SONGS[idx];
+          songStepIdx = 0;
+          document.getElementById('song-display').textContent = '♪ ' + currentSong.name;
+          if (panelOpen) buildSeqSelector();
+        }
+      }
+      songTimer = setTimeout(scheduleSongStep, msPerBeat);
+    }
+
+    // ══════════════════════════════════════════════
+    // GAME STATE
+    // ══════════════════════════════════════════════
+    const NOTES = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI', 'DO²'];
+    const TILE_HEIGHT = 60;
+    const BASE_SPEED = 1.1;
+    const HIT_ZONE_H = 52;
+    const NUM_LANES = 8;
+
+    function currentSpeed() { return BASE_SPEED + Math.min(Math.floor(score / 80) * 0.03, 1.2); }
+
+    let score = 0, combo = 0, gameActive = false, paused = false;
+    let tiles = [], lanes = [], noteKeys = [];
+    let animFrame = null, lastTime = 0;
+
+    let missTolerance = 40;
+    let gameMode = 'points', gameDuration = 'infinite';
+    let playerName = 'JUGADOR';
+    let timeLeft = 60, timerInterval = null;
+    let rankingsOrigin = 'menu';
+    let chartsReturnTarget = 'menu';
+
+    // ══════════════════════════════════════════════
+    // RANKINGS
+    // ══════════════════════════════════════════════
+    function getRankings(key) { try { return JSON.parse(localStorage.getItem('pt_rank_' + key) || '[]'); } catch (e) { return []; } }
+    function saveRanking(key, name, sc) {
+      let list = getRankings(key);
+      const ex = list.findIndex(e => e.name === name);
+      if (ex >= 0) { if (sc > list[ex].score) list[ex].score = sc; } else list.push({ name, score: sc });
+      list.sort((a, b) => b.score - a.score); list = list.slice(0, 20);
+      localStorage.setItem('pt_rank_' + key, JSON.stringify(list));
+      return list.findIndex(e => e.name === name) + 1;
+    }
+
+    // ══════════════════════════════════════════════
+    // UI REFS
+    // ══════════════════════════════════════════════
+    const gameArea = document.getElementById('game-area');
+    const scoreNum = document.getElementById('score-num');
+    const speedNum = document.getElementById('speed-num');
+    const timerNum = document.getElementById('timer-num');
+    const timerDisp = document.getElementById('timer-display');
+    const missOverlay = document.getElementById('miss-overlay');
+    const comboDisp = document.getElementById('combo-display');
+    const btDot = document.getElementById('bt-dot');
+    const btStatus = document.getElementById('bt-status');
+    const menuBtDot = document.getElementById('menu-bt-dot');
+    const menuBtLabel = document.getElementById('menu-bt-label');
+    const noteNamesDiv = document.getElementById('note-names');
+    const pauseBtn = document.getElementById('pause-btn');
+    const endInfBtn = document.getElementById('end-inf-btn');
+    const menuScreen = document.getElementById('menu-screen');
+    const nameScreen = document.getElementById('name-screen');
+    const pauseScreen = document.getElementById('pause-screen');
+    const resultScreen = document.getElementById('result-screen');
+    const rankingsScreen = document.getElementById('rankings-screen');
+    const chartsScreen = document.getElementById('charts-screen');
+
+    function showScreen(s) {
+      [menuScreen, nameScreen, pauseScreen, resultScreen, rankingsScreen, chartsScreen].forEach(x => x.classList.remove('active'));
+      if (s) s.classList.add('active');
+    }
+
+    // ══════════════════════════════════════════════
+    // BUILD LANES
+    // ══════════════════════════════════════════════
+    function buildUI() {
+      for (let i = 0; i < NUM_LANES; i++) {
+        const lane = document.createElement('div');
+        lane.className = 'lane';
+        lane.innerHTML = `<div class="hit-zone"></div><div class="lane-label">${NOTES[i]}</div>`;
+        gameArea.appendChild(lane);
+        lanes.push(lane);
+        const nk = document.createElement('div');
+        nk.className = 'note-key';
+        nk.textContent = NOTES[i];
+        noteNamesDiv.appendChild(nk);
+        noteKeys.push(nk);
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    // MENU
+    // ══════════════════════════════════════════════
+    function selectMode(m) {
+      gameMode = m;
+      document.getElementById('card-points').classList.toggle('selected', m === 'points');
+      document.getElementById('card-death').classList.toggle('selected', m === 'death');
+      document.getElementById('duration-selector').style.display = m === 'points' ? 'block' : 'none';
+    }
+    function selectDuration(d) {
+      gameDuration = d;
+      document.getElementById('card-inf').classList.toggle('selected', d === 'infinite');
+      document.getElementById('card-1min').classList.toggle('selected', d === '1min');
+    }
+    selectMode('points');
+
+    function buildSongSelector() {
+      const container = document.getElementById('song-selector');
+      container.innerHTML = '';
+      const rp = document.createElement('div');
+      rp.className = 'song-pill random' + (selectedSongIndex === -1 ? ' selected' : '');
+      rp.textContent = '🎲 ALEATORIA';
+      rp.onclick = () => selectSong(-1);
+      container.appendChild(rp);
+      SONGS.forEach((s, i) => {
+        const p = document.createElement('div');
+        p.className = 'song-pill' + (selectedSongIndex === i ? ' selected' : '');
+        p.textContent = '♪ ' + s.name.toUpperCase();
+        p.onclick = () => selectSong(i);
+        container.appendChild(p);
+      });
+    }
+    function selectSong(idx) { selectedSongIndex = idx; buildSongSelector(); }
+    function showNameInput() { buildSongSelector(); showScreen(nameScreen); document.getElementById('name-input').focus(); }
+    function confirmName() { const v = document.getElementById('name-input').value.trim().toUpperCase(); playerName = v || 'JUGADOR'; startGame(); }
+    document.getElementById('name-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmName(); });
+    function showMenu() { stopGame(); showScreen(menuScreen); }
+
+    // ══════════════════════════════════════════════
+    // TILE SPAWNING
+    // ══════════════════════════════════════════════
+    function spawnTileAt(lane) {
+      if (!gameActive || paused) return;
+      const el = document.createElement('div');
+      el.className = 'tile active';
+      el.style.height = TILE_HEIGHT + 'px';
+      el.style.top = '-' + TILE_HEIGHT + 'px';
+      lanes[lane].appendChild(el);
+      tiles.push({ el, lane, y: -TILE_HEIGHT, alive: true, hit: false });
+    }
+
+    // ══════════════════════════════════════════════
+    // GAME LOOP
+    // ══════════════════════════════════════════════
+    function gameLoop(ts) {
+      if (!gameActive || paused) return;
+      const dt = ts - lastTime; lastTime = ts;
+      const spd = currentSpeed();
+      const dy = spd * dt * 0.06;
+      const areaH = gameArea.offsetHeight;
+      const mult = (spd / BASE_SPEED).toFixed(1);
+      speedNum.textContent = mult + 'x';
+      speedNum.style.color = spd > BASE_SPEED + 0.5 ? '#ffaa00' : '#555';
+      for (let i = tiles.length - 1; i >= 0; i--) {
+        const t = tiles[i];
+        if (!t.alive) { tiles.splice(i, 1); continue; }
+        t.y += dy; t.el.style.top = t.y + 'px';
+        if (!t.hit && t.y > areaH - HIT_ZONE_H + TILE_HEIGHT + missTolerance) {
+          missedTile(t, i); if (!gameActive) return;
+        }
+      }
+      animFrame = requestAnimationFrame(gameLoop);
+    }
+
+    function missedTile(t, idx) {
+      t.alive = false; t.el.remove();
+      if (idx < tiles.length) tiles.splice(idx, 1);
+      combo = 0; comboDisp.style.opacity = '0';
+      playNote(t.lane, 'miss');
+      if (gameMode === 'death') { endGame(false); return; }
+      const penalty = 5; score = Math.max(0, score - penalty); scoreNum.textContent = score;
+      showPenaltyLabel('-' + penalty); flashMissOverlay();
+    }
+    function showPenaltyLabel(text, color = '#ff4444') {
+      const el = document.createElement('div');
+      el.textContent = text;
+      el.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-family:'Bebas Neue',sans-serif;font-size:28px;color:${color};z-index:10;
+    pointer-events:none;animation:penaltyFade 0.8s ease-out forwards;text-shadow:0 0 10px ${color};`;
+      gameArea.appendChild(el);
+      setTimeout(() => el.remove(), 800);
+    }
+    function flashMissOverlay() {
+      missOverlay.style.display = 'block';
+      missOverlay.style.animation = 'none';
+      void missOverlay.offsetWidth;
+      missOverlay.style.animation = 'fadeRed 0.5s ease-out forwards';
+      setTimeout(() => missOverlay.style.display = 'none', 500);
+    }
+
+    // ══════════════════════════════════════════════
+    // NOTE PRESS
+    // ══════════════════════════════════════════════
+    function pressNote(noteIdx) {
+      if (!gameActive || paused) return;
+      getAudioCtx();
+      noteKeys[noteIdx].classList.add('pressed');
+      setTimeout(() => noteKeys[noteIdx].classList.remove('pressed'), 200);
+      const areaH = gameArea.offsetHeight;
+      const hitTop = areaH - HIT_ZONE_H;
+      let best = null, bestDist = 999;
+      for (const t of tiles) {
+        if (!t.alive || t.hit || t.lane !== noteIdx) continue;
+        const tb = t.y + TILE_HEIGHT;
+        if (tb >= hitTop - missTolerance && t.y <= areaH + 10) {
+          const dist = Math.abs(tb - (areaH - HIT_ZONE_H / 2));
+          if (dist < bestDist) { best = t; bestDist = dist; }
+        }
+      }
+      if (best) {
+        best.hit = true; best.el.classList.remove('active'); best.el.classList.add('hit');
+        const flash = document.createElement('div'); flash.className = 'hit-flash'; best.el.appendChild(flash);
+        noteKeys[noteIdx].classList.add('hit-key');
+        setTimeout(() => { noteKeys[noteIdx].classList.remove('hit-key'); best.alive = false; best.el.remove(); }, 250);
+        playNote(noteIdx, 'hit');
+        score += 10 + combo * 2; combo++; scoreNum.textContent = score;
+        if (combo >= 3) { comboDisp.textContent = combo + 'x COMBO!'; comboDisp.style.opacity = '1'; setTimeout(() => comboDisp.style.opacity = '0', 600); }
+      } else {
+        const anyInZone = tiles.some(t => {
+          if (!t.alive || t.hit) return false;
+          const tb = t.y + TILE_HEIGHT;
+          return tb >= hitTop - missTolerance && t.y <= areaH + 10;
+        });
+        if (anyInZone) wrongKeyPress(noteIdx);
+      }
+    }
+    function wrongKeyPress(noteIdx) {
+      playNote(noteIdx, 'wrong');
+      noteKeys[noteIdx].classList.add('wrong-key');
+      setTimeout(() => noteKeys[noteIdx].classList.remove('wrong-key'), 300);
+      lanes[noteIdx].classList.add('lane-wrong-flash');
+      setTimeout(() => lanes[noteIdx].classList.remove('lane-wrong-flash'), 350);
+      combo = 0; comboDisp.style.opacity = '0';
+      if (gameMode === 'death') { endGame(false); return; }
+      const penalty = 3; score = Math.max(0, score - penalty); scoreNum.textContent = score;
+      showPenaltyLabel('-' + penalty + ' (tecla errónea)', '#ff8844'); flashMissOverlay();
+    }
+
+    // ══════════════════════════════════════════════
+    // START / STOP / PAUSE
+    // ══════════════════════════════════════════════
+    function startGame() {
+      score = 0; combo = 0; tiles = [];
+      scoreNum.textContent = '0'; speedNum.textContent = '1x';
+      paused = false; showScreen(null); gameActive = true;
+      clearInterval(timerInterval);
+      if (gameMode === 'points' && gameDuration === '1min') {
+        timeLeft = 60; timerDisp.style.display = 'block'; timerNum.textContent = '1:00';
+        timerInterval = setInterval(() => {
+          if (!gameActive || paused) return;
+          timeLeft--;
+          timerNum.textContent = Math.floor(timeLeft / 60) + ':' + String(timeLeft % 60).padStart(2, '0');
+          if (timeLeft <= 0) { clearInterval(timerInterval); endGame(false); }
+        }, 1000);
+      } else { timerDisp.style.display = 'none'; }
+      pauseBtn.style.display = 'block';
+      endInfBtn.style.display = (gameMode === 'points' && gameDuration === 'infinite') ? 'block' : 'none';
+      lastTime = performance.now();
+      animFrame = requestAnimationFrame(gameLoop);
+      startSong();
+    }
+    function stopGame() {
+      gameActive = false; paused = false;
+      cancelAnimationFrame(animFrame); clearInterval(timerInterval); stopSong();
+      tiles.forEach(t => { t.alive = false; try { t.el.remove(); } catch (e) { } });
+      tiles = []; pauseBtn.style.display = 'none'; endInfBtn.style.display = 'none'; timerDisp.style.display = 'none';
+    }
+    function endGame(abandoned) {
+      stopGame();
+      if (abandoned) { showMenu(); return; }
+      let rankKey, modeLabel;
+      if (gameMode === 'death') { rankKey = 'death'; modeLabel = 'UN FALLO'; }
+      else if (gameDuration === '1min') { rankKey = 'points_1min'; modeLabel = 'PUNTOS · 1 MINUTO'; }
+      else { rankKey = 'points_inf'; modeLabel = 'PUNTOS · INFINITO'; }
+      const pos = saveRanking(rankKey, playerName, score);
+      const titleEl = document.getElementById('result-title');
+      if (gameMode === 'death') { titleEl.textContent = 'GAME OVER'; titleEl.style.color = 'var(--red)'; }
+      else { titleEl.textContent = 'RESULTADO'; titleEl.style.color = 'var(--cyan)'; }
+      document.getElementById('result-mode-label').textContent = 'MODO: ' + modeLabel;
+      document.getElementById('result-player').textContent = playerName;
+      document.getElementById('result-score').textContent = score + ' PTS';
+      document.getElementById('result-rank').textContent = pos <= 3 ? ['🥇 ¡1er LUGAR!', '🥈 ¡2do LUGAR!', '🥉 ¡3er LUGAR!'][pos - 1] : '#' + pos + ' EN EL RANKING';
+      showScreen(resultScreen);
+    }
+    function togglePause() {
+      if (!gameActive && !paused) return;
+      paused = !paused;
+      if (paused) { clearTimeout(songTimer); showScreen(pauseScreen); pauseBtn.textContent = 'REANUDAR'; }
+      else { showScreen(null); pauseBtn.textContent = 'PAUSA'; lastTime = performance.now(); animFrame = requestAnimationFrame(gameLoop); scheduleSongStep(); }
+    }
+
+    // ══════════════════════════════════════════════
+    // RANKINGS
+    // ══════════════════════════════════════════════
+    function showRankings() {
+      rankingsOrigin = resultScreen.classList.contains('active') ? 'result' : 'menu';
+      document.querySelectorAll('.rank-tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+      renderRankTable('points_inf'); showScreen(rankingsScreen);
+    }
+    function closeRankings() { showScreen(rankingsOrigin === 'result' ? resultScreen : menuScreen); }
+    function showRankTab(key, btn) { document.querySelectorAll('.rank-tab').forEach(t => t.classList.remove('active')); btn.classList.add('active'); renderRankTable(key); }
+    function renderRankTable(key) {
+      const list = getRankings(key);
+      const tbody = document.getElementById('rank-table-body');
+      if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="rank-empty">Sin registros aún</td></tr>'; return; }
+      tbody.innerHTML = `<tr><th class="rank-pos">#</th><th>JUGADOR</th><th class="rank-score">PUNTOS</th></tr>`
+        + list.map((e, i) => `<tr><td class="rank-pos">${i + 1}</td><td>${e.name}</td><td class="rank-score">${e.score}</td></tr>`).join('');
+    }
+
+    // ══════════════════════════════════════════════
+    // WEB BLUETOOTH BLE
+    // UUID del servicio y características — deben
+    // coincidir con los definidos en el firmware
+    // de la ESP32-S3.
+    // ══════════════════════════════════════════════
+
+    // UUIDs — cámbialos si usas otros en tu ESP32-S3
+    const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+    const BLE_NOTES_CHAR_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // ESP32 → PC (notify)
+    const BLE_COLOR_CHAR_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // PC → ESP32 (write)
+
+    let bleDevice = null;
+    let bleServer = null;
+    let bleColorChar = null;
+    let bleConnected = false;
+
+    function setBtUI(state, label) {
+      btDot.className = state;
+      menuBtDot.className = 'bt-menu-dot ' + state;
+      btStatus.textContent = label;
+      menuBtLabel.textContent = label;
+      const ok = state === 'connected';
+      document.getElementById('bt-btn').textContent = ok ? 'CONECTADO ✓' : 'CONECTAR BLE';
+      document.getElementById('menu-bt-btn').textContent = ok ? 'CONECTADO ✓' : 'CONECTAR BLE';
+    }
+
+    async function connectBLE() {
+      if (!navigator.bluetooth) {
+        alert('Tu navegador no soporta Web Bluetooth.\nUsa Chrome o Edge en escritorio/Android.');
+        return;
+      }
+
+      // Si ya hay un dispositivo conectado, desconectar
+      if (bleDevice && bleDevice.gatt.connected) {
+        bleDevice.gatt.disconnect();
+        return;
+      }
+
+      try {
+        setBtUI('connecting', 'Buscando piano BLE...');
+
+        bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ services: [BLE_SERVICE_UUID] }],
+          // También puedes usar: filters: [{ name: 'PianoTiles' }]
+        });
+
+        bleDevice.addEventListener('gattserverdisconnected', onBleDisconnected);
+
+        setBtUI('connecting', 'Conectando a ' + bleDevice.name + '...');
+        bleServer = await bleDevice.gatt.connect();
+
+        const service = await bleServer.getPrimaryService(BLE_SERVICE_UUID);
+
+        // Característica de notas (notify): ESP32 → PC
+        const notesChar = await service.getCharacteristic(BLE_NOTES_CHAR_UUID);
+        await notesChar.startNotifications();
+        notesChar.addEventListener('characteristicvaluechanged', onBleNote);
+
+        // Característica de color (write): PC → ESP32
+        try {
+          bleColorChar = await service.getCharacteristic(BLE_COLOR_CHAR_UUID);
+        } catch (e) {
+          console.warn('Color char no disponible:', e);
+        }
+
+        bleConnected = true;
+        setBtUI('connected', '✓ ' + bleDevice.name + ' — Escuchando notas');
+        console.log('BLE conectado:', bleDevice.name);
+
+      } catch (e) {
+        console.warn('BLE error:', e);
+        if (e.name === 'NotFoundError') {
+          setBtUI('', 'Sin conexión BLE');
+        } else {
+          setBtUI('', 'Error: ' + e.message);
+        }
+      }
+    }
+
+    function onBleDisconnected() {
+      bleConnected = false;
+      bleColorChar = null;
+      setBtUI('', 'Desconectado — pulsa CONECTAR BLE');
+      console.log('BLE desconectado');
+    }
+
+    // Recibir nota desde la ESP32-S3
+    // Protocolo esperado (UTF-8): "Nota:3\n"  o simplemente "3\n"
+    function onBleNote(event) {
+      const decoder = new TextDecoder('utf-8');
+      const raw = decoder.decode(event.target.value).trim();
+      // Primero intentar parsear telemetría STATUS
+      if (raw.startsWith('STATUS:')) {
+        parseStatus(raw);
+      } else {
+        handlePianoInput(raw);
+      }
+    }
+
+    // Enviar color a los LEDs de la ESP32-S3
+    // Protocolo: "COLOR:R,G,B\n"
+    function sendColorWS(hexTop) {           // nombre mantenido para no romper llamadas existentes
+      if (!bleColorChar) return;
+      const r = parseInt(hexTop.slice(1, 3), 16);
+      const g = parseInt(hexTop.slice(3, 5), 16);
+      const b = parseInt(hexTop.slice(5, 7), 16);
+      const msg = 'COLOR:' + r + ',' + g + ',' + b + '\n';
+      const encoder = new TextEncoder();
+      bleColorChar.writeValueWithoutResponse(encoder.encode(msg))
+        .catch(e => console.warn('BLE write error:', e));
+      console.log('BLE color →', msg.trim());
+    }
+
+    function handlePianoInput(raw) {
+      const m = raw.match(/[Nn]ota[:\s]*(\d+)|(\d+)/);
+      if (m) {
+        const n = parseInt(m[1] || m[2], 10);
+        if (n >= 1 && n <= 8) {
+          pressNote(n - 1);
+          recordNoteEvent(n);
+        }
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    // KEYBOARD
+    // ══════════════════════════════════════════════
+    document.addEventListener('keydown', e => {
+      if (e.repeat) return;
+      if (e.key === 'Escape' && (gameActive || paused)) { togglePause(); return; }
+      const map = { 'a': 0, 's': 1, 'd': 2, 'f': 3, 'g': 4, 'h': 5, 'j': 6, 'k': 7 };
+      if (map[e.key] !== undefined) pressNote(map[e.key]);
+    });
+
+
+    // ══════════════════════════════════════════════
+    // TELEMETRY & CHARTS ENGINE
+    // ══════════════════════════════════════════════
+    const MAX_HISTORY = 60;
+    const telemetryHistory = {
+      times: [],
+      act: [],
+      vol: [],
+      fol: [],
+      noteEvents: []  // {t, note}
+    };
+
+    function parseStatus(msg) {
+      // Parse "STATUS:ACT=1&NOT=5&VOL=20&FOL=1"
+      const m = msg.match(/STATUS:ACT=(\d+)&NOT=(\d+)&VOL=(\d+)&FOL=(\d+)/);
+      if (m) {
+        const act = parseInt(m[1], 10);
+        const not = parseInt(m[2], 10);
+        const vol = parseInt(m[3], 10);
+        const fol = parseInt(m[4], 10);
+        addTelemetry(act, vol, fol);
+        if (not > 0) recordNoteEvent(not);
+        updateChartValues(act, vol, fol, not);
+      }
+    }
+
+    function addTelemetry(act, vol, fol) {
+      const now = Date.now();
+      telemetryHistory.times.push(now);
+      telemetryHistory.act.push(act);
+      telemetryHistory.vol.push(vol);
+      telemetryHistory.fol.push(fol);
+      if (telemetryHistory.times.length > MAX_HISTORY) {
+        telemetryHistory.times.shift();
+        telemetryHistory.act.shift();
+        telemetryHistory.vol.shift();
+        telemetryHistory.fol.shift();
+      }
+      if (document.getElementById('charts-screen').classList.contains('active')) {
+        requestAnimationFrame(drawCharts);
+      }
+    }
+
+    function recordNoteEvent(noteNum) {
+      const now = Date.now();
+      telemetryHistory.noteEvents.push({ t: now, note: noteNum });
+      // Mantener solo últimos 5 minutos de eventos de nota
+      const cutoff = now - 5 * 60 * 1000;
+      while (telemetryHistory.noteEvents.length > 0 && telemetryHistory.noteEvents[0].t < cutoff) {
+        telemetryHistory.noteEvents.shift();
+      }
+      if (document.getElementById('charts-screen').classList.contains('active')) {
+        requestAnimationFrame(drawCharts);
+      }
+    }
+
+    function updateChartValues(act, vol, fol, not) {
+      document.getElementById('val-act').textContent = act ? 'ACTIVO' : 'INACTIVO';
+      document.getElementById('val-act').style.color = act ? 'var(--green)' : '#555';
+      document.getElementById('val-vol').textContent = vol;
+      document.getElementById('val-fol').textContent = fol;
+      document.getElementById('val-notes').textContent = not > 0 ? ('Nota ' + not) : '—';
+      document.getElementById('val-notes').style.color = not > 0 ? 'var(--gold)' : '#555';
+    }
+
+    function showCharts() {
+      // Determinar a dónde volver al cerrar
+      if (gameActive || paused) { chartsReturnTarget = 'game'; }
+      else if (resultScreen.classList.contains('active')) { chartsReturnTarget = 'result'; }
+      else { chartsReturnTarget = 'menu'; }
+      showScreen(chartsScreen);
+      drawCharts();
+    }
+    function closeCharts() {
+      if (chartsReturnTarget === 'game') { showScreen(null); }
+      else if (chartsReturnTarget === 'result') { showScreen(resultScreen); }
+      else { showScreen(menuScreen); }
+    }
+
+    // ── Canvas Drawing Helpers ──
+    function setupCanvas(id) {
+      const c = document.getElementById(id);
+      const dpr = window.devicePixelRatio || 1;
+      const rect = c.getBoundingClientRect();
+      c.width = rect.width * dpr;
+      c.height = rect.height * dpr;
+      const ctx = c.getContext('2d');
+      ctx.scale(dpr, dpr);
+      return { ctx, w: rect.width, h: rect.height };
+    }
+
+    function drawGrid(ctx, w, h, padL, padR, padT, padB, stepsX, stepsY) {
+      ctx.save();
+      ctx.strokeStyle = '#1a1a2e';
+      ctx.lineWidth = 1;
+      const gw = w - padL - padR;
+      const gh = h - padT - padB;
+      for (let i = 0; i <= stepsX; i++) {
+        const x = padL + (gw * i / stepsX);
+        ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, h - padB); ctx.stroke();
+      }
+      for (let i = 0; i <= stepsY; i++) {
+        const y = padT + (gh * i / stepsY);
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawLineChart(canvasId, dataArr, colorHex, minVal, maxVal, fillAlpha, stepMode) {
+      const { ctx, w, h } = setupCanvas(canvasId);
+      const padL = 36, padR = 10, padT = 10, padB = 22;
+      ctx.clearRect(0, 0, w, h);
+      drawGrid(ctx, w, h, padL, padR, padT, padB, 6, 4);
+
+      const n = dataArr.length;
+      if (n < 2) {
+        ctx.fillStyle = '#333';
+        ctx.font = '11px "Space Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Esperando datos BLE...', w / 2, h / 2);
+        return;
+      }
+
+      const gw = w - padL - padR;
+      const gh = h - padT - padB;
+      const range = maxVal - minVal || 1;
+
+      // Area fill
+      if (fillAlpha) {
+        const grad = ctx.createLinearGradient(0, padT, 0, h - padB);
+        grad.addColorStop(0, colorHex + '44');
+        grad.addColorStop(1, colorHex + '05');
+        ctx.beginPath();
+        ctx.moveTo(padL + gw * (n - 1) / (MAX_HISTORY - 1), h - padB);
+        for (let i = 0; i < n; i++) {
+          const x = padL + gw * i / (MAX_HISTORY - 1);
+          const y = padT + gh * (1 - (dataArr[i] - minVal) / range);
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(padL, h - padB);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+
+      // Line
+      ctx.beginPath();
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < n; i++) {
+        const x = padL + gw * i / (MAX_HISTORY - 1);
+        const y = padT + gh * (1 - (dataArr[i] - minVal) / range);
+        if (i === 0) ctx.moveTo(x, y);
+        else {
+          if (stepMode) {
+            const prevX = padL + gw * (i - 1) / (MAX_HISTORY - 1);
+            const prevY = padT + gh * (1 - (dataArr[i - 1] - minVal) / range);
+            ctx.lineTo(x, prevY);
+          }
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+
+      // Dots
+      ctx.fillStyle = '#fff';
+      for (let i = 0; i < n; i++) {
+        const x = padL + gw * i / (MAX_HISTORY - 1);
+        const y = padT + gh * (1 - (dataArr[i] - minVal) / range);
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Y labels
+      ctx.fillStyle = '#555';
+      ctx.font = '9px "Space Mono", monospace';
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const v = minVal + (range * i / 4);
+        const y = padT + gh * (1 - i / 4) + 3;
+        ctx.fillText(Math.round(v), padL - 6, y);
+      }
+    }
+
+    function drawBarChart(canvasId, events) {
+      const { ctx, w, h } = setupCanvas(canvasId);
+      const padL = 36, padR = 10, padT = 10, padB = 22;
+      ctx.clearRect(0, 0, w, h);
+
+      // Count frequency per note (1-8)
+      const counts = [0, 0, 0, 0, 0, 0, 0, 0];
+      events.forEach(e => { if (e.note >= 1 && e.note <= 8) counts[e.note - 1]++; });
+      const maxCount = Math.max(...counts, 1);
+
+      const gw = w - padL - padR;
+      const gh = h - padT - padB;
+      const barW = (gw / 8) * 0.65;
+      const spacing = gw / 8;
+
+      // Grid
+      drawGrid(ctx, w, h, padL, padR, padT, padB, 8, 4);
+
+      // Bars
+      const colors = ['#00d4ff','#22ddff','#44e8ff','#66eeff','#88f5ff','#aaffff','#ccffff','#ffffff'];
+      counts.forEach((c, i) => {
+        const x = padL + spacing * i + (spacing - barW) / 2;
+        const bh = (c / maxCount) * gh;
+        const y = h - padB - bh;
+        // gradient
+        const g = ctx.createLinearGradient(0, y, 0, h - padB);
+        g.addColorStop(0, colors[i] + 'cc');
+        g.addColorStop(1, colors[i] + '33');
+        ctx.fillStyle = g;
+        ctx.fillRect(x, y, barW, bh);
+        // border
+        ctx.strokeStyle = colors[i];
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, barW, bh);
+        // label
+        ctx.fillStyle = '#888';
+        ctx.font = '9px "Space Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(NOTE_NAMES[i], padL + spacing * i + spacing / 2, h - padB + 12);
+        // count
+        if (c > 0) {
+          ctx.fillStyle = '#fff';
+          ctx.fillText(c, x + barW / 2, y - 4);
+        }
+      });
+
+      // Y labels
+      ctx.fillStyle = '#555';
+      ctx.font = '9px "Space Mono", monospace';
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const v = Math.round(maxCount * i / 4);
+        const y = h - padB - (gh * i / 4) + 3;
+        ctx.fillText(v, padL - 6, y);
+      }
+
+      // Timeline mini-sparkline at top (last 60s)
+      const now = Date.now();
+      const windowMs = 60000;
+      const recent = events.filter(e => now - e.t < windowMs);
+      if (recent.length > 1) {
+        ctx.strokeStyle = 'var(--cyan)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        recent.forEach((e, i) => {
+          const x = padL + gw * (1 - (now - e.t) / windowMs);
+          const lane = e.note - 1;
+          const y = padT + (gh * 0.25) + (lane / 7) * (gh * 0.5);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        // dots
+        ctx.fillStyle = '#fff';
+        recent.forEach(e => {
+          const x = padL + gw * (1 - (now - e.t) / windowMs);
+          const lane = e.note - 1;
+          const y = padT + (gh * 0.25) + (lane / 7) * (gh * 0.5);
+          ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
+        });
+      }
+    }
+
+    function drawCharts() {
+      if (!document.getElementById('charts-screen').classList.contains('active')) return;
+      drawLineChart('chart-act', telemetryHistory.act, '#00ff88', 0, 1, false, true);
+      drawLineChart('chart-vol', telemetryHistory.vol, '#00d4ff', 5, 30, true, false);
+      drawLineChart('chart-fol', telemetryHistory.fol, '#ffd700', 1, 4, false, true);
+      drawBarChart('chart-notes', telemetryHistory.noteEvents);
+    }
+
+    // Redibujar al redimensionar
+    window.addEventListener('resize', () => {
+      if (document.getElementById('charts-screen').classList.contains('active')) drawCharts();
+    });
+
+    // ══════════════════════════════════════════════
+    // INIT
+    // ══════════════════════════════════════════════
+    buildUI();
+    buildColorPanel();
+    applyPreset(0); // Cyan por defecto
+  </script>
+</body>
+
+</html>
