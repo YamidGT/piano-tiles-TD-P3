@@ -10,7 +10,6 @@
 | ------------------------- | --------------------------------------------------------------------------------------------------- |
 | ![Código QR](qr-code.png) | **Escanea este código QR** desde tu móvil para jugar al instante, o haz clic en el botón de arriba. |
 
-> 💡 **Tip:** Para generar el QR, usa [QR Code Monkey](https://www.qrcode-monkey.com) o el script Python incluido más abajo.
 
 ---
 
