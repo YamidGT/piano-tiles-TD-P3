@@ -105,6 +105,20 @@ COLOR:0,212,255
 
 ---
 
+## 🔩 Firmware del piano físico (ESP32-S3)
+
+| Versión | Carpeta | Motor de audio | Estado |
+| ------- | ------- | --------------- | ------ |
+| **V7 (actual)** | [`SmartPiano_V7/`](SmartPiano_V7/) | I2S polifónico propio (DAC UDA1334A + amplificador PAM8403) | ✅ En uso |
+| V6 | [`prueba_sonido_8botones/SmartPiano_V6.ino`](prueba_sonido_8botones/SmartPiano_V6.ino) | DFPlayer Mini (una sola nota a la vez) | 🗄️ Versión anterior |
+| Prototipo de audio | [`prueba_sonido_8botones/`](prueba_sonido_8botones/) | Pruebas del motor I2S en protoboard | 🧪 Base para V7 |
+
+El DFPlayer Mini (V6) solo reproducía una nota a la vez y con más latencia. El firmware **V7** reemplaza ese módulo por un motor de audio I2S corriendo directamente en el ESP32-S3, que mezcla hasta 8 sonidos simultáneos (polifonía real: se pueden tocar varias teclas a la vez) manteniendo el resto del sistema sin cambios (BLE, NeoPixels, sensor láser VL53L0X, PIR, servo y todos los pines de botones/sensores).
+
+Por ahora solo está cargado el instrumento **Piano**; la estructura de sonidos ya está preparada para añadir **Flauta** y **Guitarra** más adelante sin rediseñar el firmware.
+
+---
+
 ## 🖥️ Controles por teclado
 
 | Tecla | Nota |
@@ -139,7 +153,14 @@ COLOR:0,212,255
 piano-tiles-TD-P3/
 ├── index.html
 ├── qr-code.png
-└── README.md
+├── README.md
+├── prueba_sonido_8botones/     # Prototipo de audio I2S + firmware V6 (histórico, DFPlayer Mini)
+│   ├── prueba_sonido_8botones.ino
+│   ├── SmartPiano_V6.ino
+│   └── audio_data1.h ... audio_data8.h
+└── SmartPiano_V7/              # Firmware actual del piano físico (audio I2S polifónico)
+    ├── SmartPiano_V7.ino
+    └── audio_piano_1.h ... audio_piano_8.h
 ```
 
 ---
